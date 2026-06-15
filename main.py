@@ -2,7 +2,7 @@ import os
 import telebot
 from telebot import types
 
-# रेंडर की सेटिंग से टोकन उठाएं
+# टोकन को रेंडर की एनवायरनमेंट सेटिंग से उठाएं
 TOKEN = os.environ.get("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
@@ -21,4 +21,5 @@ def handle_text(message):
     elif message.text == "📊 STATUS":
         bot.reply_to(message, "📈 बोट लाइव है और निगरानी कर रहा है!")
 
-bot.polling(none_stop=True)
+# यह बोट को लगातार चालू रखेगा
+bot.infinity_polling()
