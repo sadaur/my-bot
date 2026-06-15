@@ -2,7 +2,7 @@ import os
 import telebot
 from telebot import types
 
-# रेंडर (Render) की सेटिंग से टोकन उठाएं
+# रेंडर की सेटिंग से टोकन उठाएं
 TOKEN = os.environ.get("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
