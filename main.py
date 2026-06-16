@@ -1,3 +1,9 @@
+import sys
+sys.path.append('.')
+
+import telebot
+from telebot import types
+import os
 import os
 import telebot
 from telebot import types
