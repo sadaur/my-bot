@@ -1,31 +1,46 @@
-import sys
-sys.path.append('.')
-
-import telebot
-from telebot import types
+import discord
+from discord.ext import commands
 import os
-import os
-import telebot
-from telebot import types
 
-# टोकन को रेंडर की एनवायरनमेंट सेटिंग से उठाएं
-TOKEN = os.environ.get("TOKEN")
-bot = telebot.TeleBot(TOKEN)
+# डिस्कार्ड बॉट सेटअप
+intents = discord.Intents.default()
+intents.message_content = True  # मैसेजेस पढ़ने की परमिशन
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(types.KeyboardButton("🚀 START BOT"), types.KeyboardButton("🔴 STOP BOT"), types.KeyboardButton("📊 STATUS"))
-    bot.send_message(message.chat.id, "🤖 ट्रेडिंग बॉट तैयार है! नीचे दिए गए बटन का उपयोग करें।", reply_markup=markup)
+@bot.event
+async def on_ready():
+    print(f"बॉट तैयार है! {bot.user} के रूप में लॉग इन हुआ।")
 
-@bot.message_handler(content_types=['text'])
-def handle_text(message):
-    if message.text == "🚀 START BOT":
-        bot.reply_to(message, "✅ बोट शुरू हो गया है!")
-    elif message.text == "🔴 STOP BOT":
-        bot.reply_to(message, "❌ बोट बंद हो गया है!")
-    elif message.text == "📊 STATUS":
-        bot.reply_to(message, "📈 बोट लाइव है और निगरानी कर रहा है!")
+# !start कमांड के लिए
+@bot.command(name="start")
+async def send_welcome(ctx):
+    await ctx.send("🤖 **ट्रेडिंग बॉट तैयार है!**\n\n"
+                   "नीचे दिए गए कमांड्स का उपयोग करें:\n"
+                   "➡️ `!start` - बॉट शुरू करने के लिए\n"
+                   "➡️ `!stop` - बॉट बंद करने के लिए\n"
+                   "➡️ `!status` - बॉट की स्थिति देखने के लिए")
 
-# यह बोट को लगातार चालू रखेगा
-bot.infinity_polling()
+# मैसेज हैंडलर (बटन टेक्स्ट की तरह काम करने के लिए)
+@bot.event
+async def on_message(message):
+    # अगर मैसेज बॉट खुद भेज रहा है, तो कुछ मत करो
+    if message.author == bot.user:
+        return
+
+    # टेक्स्ट के हिसाब से जवाब
+    if message.content == "🚀 START BOT" or message.content == "!start":
+        await message.reply("✅ बॉट शुरू हो रहा है!")
+    elif message.content == "🔴 STOP BOT" or message.content == "!stop":
+        await message.reply("❌ बॉट बंद हो गया है!")
+    elif message.content == "📊 STATUS" or message.content == "!status":
+        await message.reply("📈 बॉट लाइव है और निगरानी कर रहा है!")
+
+    # कमांड्स को प्रोसेस करने के लिए ज़रूरी लाइन
+    await bot.process_commands(message)
+
+# रेंडर की एन्वायरमेंट सेटिंग से DISCORD_TOKEN उठाना
+TOKEN = os.environ.get("DISCORD_TOKEN")
+if TOKEN:
+    bot.run(TOKEN)
+else:
+    print("Error: DISCORD_TOKEN नहीं मिला!")
