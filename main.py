@@ -1,37 +1,36 @@
+import os
 import discord
 from discord.ext import commands
-import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
+from flask import Flask
+from threading import Thread
 
-# रेंडर के पोर्ट एरर को ठीक करने के लिए एक छोटा वेब सर्वर सेटअप
-class DummyServer(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(b"Bot is running alive!")
+# रेंडर पर बॉट को 24/7 लाइव रखने के लिए छोटा वेब सर्वर
+app = Flask('')
 
-def run_web_server():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), DummyServer)
-    print(f"वेब सर्वर पोर्ट {port} पर चालू हो गया है।")
-    server.serve_forever()
+@app.route('/')
+def home():
+    return "Bot is alive!"
 
-# वेब सर्वर को बैकग्राउंड में शुरू करना
-threading.Thread(target=run_web_server, daemon=True).start()
+def run():
+    app.run(host='0.0.0.0', port=10000)
 
-# --- डिस्कार्ड बॉट सेटअप ---
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# डिस्कार्ड की इंटेंट्स (Intents) चालू करना
 intents = discord.Intents.default()
 intents.message_content = True  
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"बॉट तैयार है! {bot.user} के रूप में लॉग इन हुआ।")
+    print(f'बॉट सफलतापूर्वक लॉगिन हो गया है: {bot.user.name}')
 
-@bot.command(name="start")
-async def send_welcome(ctx):
+# !start कमांड का जवाब
+@bot.command(name='start')
+async def start_command(ctx):
     await ctx.send("🤖 **ट्रेडिंग बॉट तैयार है!**\n\n"
                    "नीचे दिए गए कमांड्स का उपयोग करें:\n"
                    "➡️ `!start` - बॉट शुरू करने के लिए\n"
@@ -42,16 +41,11 @@ async def send_welcome(ctx):
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    if message.content == "🚀 START BOT" or message.content == "!start":
-        await message.reply("✅ बॉट शुरू हो रहा है!")
-    elif message.content == "🔴 STOP BOT" or message.content == "!stop":
-        await message.reply("❌ बॉट बंद हो गया है!")
-    elif message.content == "📊 STATUS" or message.content == "!status":
-        await message.reply("📈 बॉट लाइव है और निगरानी कर रहा है!")
-
     await bot.process_commands(message)
 
+keep_alive()
+
+# रेंडर की सेटिंग से डिस्कार्ड टोकन उठाना
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if TOKEN:
     bot.run(TOKEN)
