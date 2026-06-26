@@ -1,53 +1,48 @@
 import os
-import discord
-from discord.ext import commands
+import MetaTrader5 as mt5
 from flask import Flask
 from threading import Thread
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
-# रेंडर पर बॉट को 24/7 लाइव रखने के लिए छोटा वेब सर्वर
-app = Flask('')
+# 1. MT5 लॉगिन फंक्शन
+def connect_mt5():
+    if not mt5.initialize(login=315028459, password="4Z!RRs7X!d", server="GoatFunded-Server"):
+        print("MT5 कनेक्ट नहीं हो पाया")
+        return False
+    return True
 
+# 2. Flask सर्वर (Render को अलाइव रखने के लिए)
+app = Flask(__name__)
 @app.route('/')
 def home():
-    return "Bot is alive!"
+    return "Trading Bot is running!"
 
-def run():
+def run_flask():
     app.run(host='0.0.0.0', port=10000)
 
-def keep_alive():
-    t = Thread(target=run)
+# 3. टेलीग्राम कमांड्स
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("ट्रेडिंग बोट तैयार है! मैं मार्केट एनालाइज कर रहा हूँ।")
+
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # यहाँ आप अपना प्राइस एक्शन या PnL चेक करने का कोड डाल सकते हैं
+    await update.message.reply_text("बोट सक्रिय है। मार्केट डेटा फेच हो रहा है...")
+
+# 4. मुख्य फंक्शन
+if __name__ == '__main__':
+    # Flask को बैकग्राउंड में चलाएं
+    t = Thread(target=run_flask)
     t.start()
 
-# डिस्कार्ड की इंटेंट्स (Intents) चालू करना
-intents = discord.Intents.default()
-intents.message_content = True  
+    # MT5 कनेक्ट करें
+    connect_mt5()
 
-bot = commands.Bot(command_prefix='!', intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f'बॉट सफलतापूर्वक लॉगिन हो गया है: {bot.user.name}')
-
-# !start कमांड का जवाब
-@bot.command(name='start')
-async def start_command(ctx):
-    await ctx.send("🤖 **ट्रेडिंग बॉट तैयार है!**\n\n"
-                   "नीचे दिए गए कमांड्स का उपयोग करें:\n"
-                   "➡️ `!start` - बॉट शुरू करने के लिए\n"
-                   "➡️ `!stop` - बॉट बंद करने के लिए\n"
-                   "➡️ `!status` - बॉट की स्थिति देखने के लिए")
-
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    await bot.process_commands(message)
-
-keep_alive()
-
-# रेंडर की सेटिंग से डिस्कार्ड टोकन उठाना
-TOKEN = os.environ.get("DISCORD_TOKEN")
-if TOKEN:
-    bot.run(TOKEN)
-else:
-    print("Error: DISCORD_TOKEN नहीं मिला!")
+    # टेलीग्राम बोट शुरू करें
+    TOKEN = os.environ.get("TELEGRAM_TOKEN")
+    application = ApplicationBuilder().token(TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("status", status))
+    
+    application.run_polling()
